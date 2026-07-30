@@ -8,6 +8,14 @@ import { Threshold, thresholdAttr, thresholdOpts } from "@/models/threshold.mode
 import { User, userAttr, userOpts } from "@/models/user.model.js"
 import { Device, deviceAttr, deviceOpts } from "@/models/device.model.js"
 import { Fault, faultAttr, faultOpts } from "@/models/fault.model.js"
+import {
+	PixelToCmRatio,
+	PlantHeight,
+	pixelToCmRatioAttr,
+	pixelToCmRatioOpts,
+	plantHeightAttr,
+	plantHeightOpts,
+} from "@/modules/plant/model.js"
 
 //
 
@@ -26,6 +34,8 @@ const boot = async () => {
 	Detection.init(detectionAttr, detectionOpts(sequelize))
 	Device.init(deviceAttr, deviceOpts(sequelize))
 	Fault.init(faultAttr, faultOpts(sequelize))
+	PixelToCmRatio.init(pixelToCmRatioAttr, pixelToCmRatioOpts(sequelize))
+	PlantHeight.init(plantHeightAttr, plantHeightOpts(sequelize))
 	Reading.init(readingAttr, readingOpts(sequelize))
 	Settings.init(settingsAttr, settingsOpts(sequelize))
 	Threshold.init(thresholdAttr, thresholdOpts(sequelize))
@@ -33,7 +43,11 @@ const boot = async () => {
 
 	User.hasMany(Device, { foreignKey: "userId", onDelete: "CASCADE" })
 	Capture.hasMany(Detection, { foreignKey: "captureId", onDelete: "CASCADE" })
+	Capture.hasMany(PlantHeight, { as: "plantHeights", foreignKey: "captureId", onDelete: "CASCADE" })
 	Detection.belongsTo(Capture, { as: "capture", foreignKey: "captureId" })
+	Detection.hasOne(PlantHeight, { as: "plantHeight", foreignKey: "detectionId", onDelete: "CASCADE" })
+	PlantHeight.belongsTo(Capture, { as: "capture", foreignKey: "captureId" })
+	PlantHeight.belongsTo(Detection, { as: "detection", foreignKey: "detectionId" })
 	Device.belongsTo(User, { as: "user", foreignKey: "userId" })
 
 	await sequelize.authenticate()

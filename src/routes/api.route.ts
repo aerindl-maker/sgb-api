@@ -9,6 +9,7 @@ import roleMiddleware from "@/middlewares/role.middleware.js"
 import deviceRoute from "@/routes/device.route.js"
 import faultRoute from "@/routes/fault.route.js"
 import versionController from "@/controllers/version.controller.js"
+import { plantRouter } from "@/modules/plant/route.js"
 
 //
 
@@ -17,6 +18,7 @@ router.use("/auth", authRoute.router)
 router.use("/user", jwtMiddleware.requireAuthToken, roleMiddleware.requireUserRole("Admin"), userRoute.router)
 router.use("/device", jwtMiddleware.requireAuthToken, deviceRoute.router)
 router.use("/fault", jwtMiddleware.requireAuthToken, faultRoute.router)
+router.use("/plant", jwtMiddleware.requireAuthToken, plantRouter)
 router.use("/capture", jwtMiddleware.requireAuthToken, captureRoute.router)
 router.use("/reading", jwtMiddleware.requireAuthToken, readingRoute.router)
 router.use("/threshold", jwtMiddleware.requireAuthToken, thresholdRoute.router)
