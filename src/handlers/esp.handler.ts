@@ -13,6 +13,7 @@ const readingSensorMap = new Map<string, string>([
 	["Temperature", "DHT22"],
 	["Humidity", "DHT22"],
 	["Soil Moisture", "Soil Moisture Sensor"],
+	["Light", "BH1750"],
 ])
 
 //
