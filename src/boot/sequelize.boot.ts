@@ -7,6 +7,7 @@ import { Settings, settingsAttr, settingsOpts } from "@/models/settings.model.js
 import { Threshold, thresholdAttr, thresholdOpts } from "@/models/threshold.model.js"
 import { User, userAttr, userOpts } from "@/models/user.model.js"
 import { Device, deviceAttr, deviceOpts } from "@/models/device.model.js"
+import { Control, controlAttr, controlOpts } from "@/models/control.model.js"
 import { Fault, faultAttr, faultOpts } from "@/models/fault.model.js"
 import {
 	PixelToCmRatio,
@@ -31,6 +32,7 @@ const boot = async () => {
 	const sequelize = new Sequelize(`${url}/${name}`, { ...options, logging: log && console.log })
 
 	Capture.init(captureAttr, captureOpts(sequelize))
+	Control.init(controlAttr, controlOpts(sequelize))
 	Detection.init(detectionAttr, detectionOpts(sequelize))
 	Device.init(deviceAttr, deviceOpts(sequelize))
 	Fault.init(faultAttr, faultOpts(sequelize))

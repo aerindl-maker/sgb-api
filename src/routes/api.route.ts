@@ -10,12 +10,14 @@ import deviceRoute from "@/routes/device.route.js"
 import faultRoute from "@/routes/fault.route.js"
 import versionController from "@/controllers/version.controller.js"
 import { plantRouter } from "@/modules/plant/route.js"
+import controlRoute from "@/routes/control.route.js"
 
 //
 
 const router = express.Router()
 router.use("/auth", authRoute.router)
 router.use("/user", jwtMiddleware.requireAuthToken, roleMiddleware.requireUserRole("Admin"), userRoute.router)
+router.use("/control", jwtMiddleware.requireAuthToken, roleMiddleware.requireUserRole("Admin"), controlRoute.router)
 router.use("/device", jwtMiddleware.requireAuthToken, deviceRoute.router)
 router.use("/fault", jwtMiddleware.requireAuthToken, faultRoute.router)
 router.use("/plant", jwtMiddleware.requireAuthToken, plantRouter)

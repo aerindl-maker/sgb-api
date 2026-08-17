@@ -6,6 +6,7 @@ import thresholdOrchestrator from "@/orchestrators/threshold.orchestrator.js"
 import faultOrchestrator from "@/orchestrators/fault.orchestrator.js"
 import { Threshold } from "@/models/threshold.model.js"
 import espWebsocket from "@/websockets/esp.websocket.js"
+import { Control } from "@/models/control.model.js"
 
 //
 
@@ -47,6 +48,12 @@ const onRetrieveThreshold: WsEventHandler = async () => {
 	await espWebsocket.broadcast(event)
 }
 
+const onRetrieveControl: WsEventHandler = async () => {
+	const [control] = await Control.findOrCreate({ where: { id: 1 } })
+	const event: WsEvent = { name: "Control", query: "Update", data: [control.dataValues] }
+	await espWebsocket.broadcast(event)
+}
+
 //
 
-export default { onCreateReading, onRetrieveThreshold }
+export default { onCreateReading, onRetrieveThreshold, onRetrieveControl }
