@@ -1,11 +1,17 @@
 import multerMiddleware from "@/middlewares/multer.middleware.js"
 import {
+	countPlantHeights,
 	createPixelToCmRatio,
 	createPlantCapture,
 	listPixelToCmRatios,
 	listPlantHeights,
 } from "@/modules/plant/repository.js"
-import type { CreatePixelToCmRatioBody, CreatePlantCaptureBody, ListPlantHeightsQuery } from "@/modules/plant/schema.js"
+import type {
+	CountPlantHeightsQuery,
+	CreatePixelToCmRatioBody,
+	CreatePlantCaptureBody,
+	ListPlantHeightsQuery,
+} from "@/modules/plant/schema.js"
 import supabaseService from "@/services/supabase.service.js"
 import type { RequestHandler } from "express"
 
@@ -15,6 +21,12 @@ const listHeightsController: RequestHandler = async (req, res) => {
 	const query = req.validated?.query as ListPlantHeightsQuery
 	const heights = await listPlantHeights(query)
 	res.status(200).json(heights)
+}
+
+const countHeightsController: RequestHandler = async (req, res) => {
+	const query = req.validated?.query as CountPlantHeightsQuery
+	const count = await countPlantHeights(query)
+	res.status(200).json({ count })
 }
 
 const listPixelToCmRatiosController: RequestHandler = async (_, res) => {
@@ -58,6 +70,7 @@ const createPlantCaptureController: RequestHandler = async (req, res, next) => {
 //
 
 export {
+	countHeightsController,
 	createPixelToCmRatioController,
 	createPlantCaptureController,
 	listHeightsController,

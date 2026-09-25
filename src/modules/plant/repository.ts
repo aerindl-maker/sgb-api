@@ -1,7 +1,12 @@
 import { Capture } from "@/models/capture.model.js"
 import { Detection } from "@/models/detection.model.js"
 import { PixelToCmRatio, PlantHeight } from "@/modules/plant/model.js"
-import type { CreatePixelToCmRatioBody, ListPlantHeightsQuery, PlantDetection } from "@/modules/plant/schema.js"
+import type {
+	CountPlantHeightsQuery,
+	CreatePixelToCmRatioBody,
+	ListPlantHeightsQuery,
+	PlantDetection,
+} from "@/modules/plant/schema.js"
 import { Op } from "sequelize"
 
 //
@@ -51,21 +56,37 @@ const createPlantCapture = async (input: CreatePlantCaptureInput) => {
 	})
 }
 
-const listPlantHeights = async (query: ListPlantHeightsQuery) => {
+const buildCreatedAtWhere = (query: CountPlantHeightsQuery) => {
 	const createdAt = {
 		...(query.alpha && { [Op.gte]: query.alpha }),
 		...(query.omega && { [Op.lte]: query.omega }),
 	}
 
+	return Object.keys(createdAt).length ? { createdAt } : undefined
+}
+
+const listPlantHeights = async (query: ListPlantHeightsQuery) => {
+	const where = buildCreatedAtWhere(query)
+	const direction = query.order === "asc" ? "ASC" : "DESC"
+
 	const heights = await PlantHeight.findAll({
-		...(Object.keys(createdAt).length && { where: { createdAt } }),
+		...(where && { where }),
 		limit: query.limit,
 		offset: query.offset,
-		order: [["createdAt", "DESC"]],
+		order: [
+			["createdAt", direction],
+			["id", direction],
+		],
 		raw: true,
 	})
 
-	return heights.reverse()
+	// Without an explicit order the latest page is returned oldest first for charting.
+	return query.order ? heights : heights.reverse()
+}
+
+const countPlantHeights = async (query: CountPlantHeightsQuery) => {
+	const where = buildCreatedAtWhere(query)
+	return await PlantHeight.count({ ...(where && { where }) })
 }
 
 const listPixelToCmRatios = async () => {
@@ -81,4 +102,4 @@ const createPixelToCmRatio = async (input: CreatePixelToCmRatioBody) => {
 
 //
 
-export { createPixelToCmRatio, createPlantCapture, listPixelToCmRatios, listPlantHeights }
+export { countPlantHeights, createPixelToCmRatio, createPlantCapture, listPixelToCmRatios, listPlantHeights }

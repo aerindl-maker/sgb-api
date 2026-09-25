@@ -48,6 +48,14 @@ const listPlantHeightsQuerySchema = z
 		omega: z.coerce.date().optional(),
 		limit: z.coerce.number().int().min(1).max(500).default(100),
 		offset: z.coerce.number().int().min(0).default(0),
+		order: z.enum(["asc", "desc"]).optional(),
+	})
+	.strict()
+
+const countPlantHeightsQuerySchema = z
+	.object({
+		alpha: z.coerce.date().optional(),
+		omega: z.coerce.date().optional(),
 	})
 	.strict()
 
@@ -63,15 +71,23 @@ const createPixelToCmRatioBodySchema = z
 type PlantDetection = z.infer<typeof plantDetectionSchema>
 type CreatePlantCaptureBody = z.infer<typeof createPlantCaptureBodySchema>
 type ListPlantHeightsQuery = z.infer<typeof listPlantHeightsQuerySchema>
+type CountPlantHeightsQuery = z.infer<typeof countPlantHeightsQuerySchema>
 type CreatePixelToCmRatioBody = z.infer<typeof createPixelToCmRatioBodySchema>
 
 //
 
 export {
+	countPlantHeightsQuerySchema,
 	createPixelToCmRatioBodySchema,
 	createPlantCaptureBodySchema,
 	listPlantHeightsQuerySchema,
 	plantBoundingBoxSchema,
 	plantDetectionSchema,
 }
-export type { CreatePixelToCmRatioBody, CreatePlantCaptureBody, ListPlantHeightsQuery, PlantDetection }
+export type {
+	CountPlantHeightsQuery,
+	CreatePixelToCmRatioBody,
+	CreatePlantCaptureBody,
+	ListPlantHeightsQuery,
+	PlantDetection,
+}

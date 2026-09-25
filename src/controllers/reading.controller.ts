@@ -7,20 +7,44 @@ import { Op } from "sequelize"
 
 //
 
-const get: RequestHandler = async (req, res) => {
-    const { data, error, success } = PaginationSchema.and(ReadingQuerySchema).safeParse(req.query)
-    if (!success) return res.status(400).send(error.issues.at(0)?.message)
+const parseQuery = (query: unknown) => {
+    const { data, error, success } = PaginationSchema.and(ReadingQuerySchema).safeParse(query)
+    if (!success) return { error: error.issues.at(0)?.message }
 
     const keys = Object.keys(PaginationSchema.shape)
     const entries = Object.entries(data).filter(([k, v]) => !keys.includes(k) && v != undefined)
 
-    const { alpha, omega, limit, offset } = data
+    const { alpha, omega, limit, offset, order = "asc" } = data
     const where: any = Object.fromEntries(entries)
     const createdAt = { ...(alpha && { [Op.gte]: alpha }), ...(omega && { [Op.lte]: omega }) }
     if (Object.keys(createdAt).length) where.createdAt = createdAt
 
-    const readings = await Reading.findAll({ where, raw: true, limit, offset })
+    return { where, limit, offset, order }
+}
+
+const get: RequestHandler = async (req, res) => {
+    const query = parseQuery(req.query)
+    if ("error" in query) return res.status(400).send(query.error)
+
+    const { where, limit, offset, order } = query
+
+    // --- Stable ordering keeps offset pages from overlapping
+    const readings = await Reading.findAll({
+        where,
+        raw: true,
+        limit,
+        offset,
+        order: [["createdAt", order], ["id", order]],
+    })
     res.send(readings)
+}
+
+const count: RequestHandler = async (req, res) => {
+    const query = parseQuery(req.query)
+    if ("error" in query) return res.status(400).send(query.error)
+
+    const total = await Reading.count({ where: query.where })
+    res.send({ count: total })
 }
 
 const post: RequestHandler = async (req, res) => {
@@ -58,4 +82,4 @@ const destroy: RequestHandler = async (req, res) => {
 
 //
 
-export default { get, post, patch, destroy }
+export default { get, count, post, patch, destroy }
