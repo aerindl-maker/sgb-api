@@ -2,6 +2,11 @@ import crypto from "crypto"
 import env from "@/config/env.config.js"
 import { Esp } from "@/models/esp.model.js"
 import { Device } from "@/models/device.model.js"
+import { Reading } from "@/models/reading.model.js"
+import { Threshold } from "@/models/threshold.model.js"
+import { Control } from "@/models/control.model.js"
+import { Fault } from "@/models/fault.model.js"
+import { Capture } from "@/models/capture.model.js"
 import { DEFAULT_ESP_ID, EspIdSchema } from "@/schemas/esp.schema.js"
 import { type UserSafeSchema } from "@/schemas/user.schema.js"
 
@@ -12,12 +17,14 @@ const hashKey = (key: string) => crypto.createHash("sha256").update(key).digest(
 const generateKey = () => crypto.randomBytes(24).toString("hex")
 
 /**
- * Finds the esp owning the api key. Unknown or missing keys fall back to the
- * default esp so already flashed boards keep working, unless strict mode is on.
+ * Finds the esp owning the api key. The default esp takes boards without a key, and
+ * unknown keys too while its own key isn't configured, so the legacy board keeps
+ * working. Once it is, unknown keys (deleted or re-keyed boards) are rejected.
  */
 const resolve = async (key?: string) => {
     const owner = key ? await Esp.findOne({ where: { keyHash: hashKey(key) } }) : null
-    const esp = owner ?? (env.esp.strict ? null : await Esp.findByPk(DEFAULT_ESP_ID))
+    const fallback = !env.esp.strict && (!key || !env.esp.defaultKey)
+    const esp = owner ?? (fallback ? await Esp.findByPk(DEFAULT_ESP_ID) : null)
     if (!esp || !esp.enabled) return null
     return esp
 }
@@ -68,6 +75,30 @@ const ownerTokens = async (espId?: number | null) => {
     return [...new Set(devices.map((d) => d.token).filter(Boolean))]
 }
 
+/**
+ * Permanently removes an esp with everything it recorded, in one transaction.
+ * Detections and plant heights go with their captures through the database cascade.
+ * Returns the capture image names so the caller can clear them from storage.
+ */
+const purge = async (esp: Esp) => {
+    const sequelize = Esp.sequelize
+    if (!sequelize) throw new Error("Database is not initialized.")
+
+    return await sequelize.transaction(async (transaction) => {
+        const where = { espId: esp.id }
+        const captures = await Capture.findAll({ where, attributes: ["image"], transaction })
+
+        await Capture.destroy({ where, transaction })
+        await Reading.destroy({ where, transaction })
+        await Threshold.destroy({ where, transaction })
+        await Control.destroy({ where, transaction })
+        await Fault.destroy({ where, transaction })
+        await esp.destroy({ transaction })
+
+        return captures.map((c) => c.image)
+    })
+}
+
 // --- Prefixes notifications with the esp name once its owner has more than one
 const label = async (espId?: number | null) => {
     if (espId == null) return ""
@@ -79,4 +110,4 @@ const label = async (espId?: number | null) => {
 
 //
 
-export default { hashKey, generateKey, resolve, parseId, isAdmin, findOwned, owns, ownedIds, ownerId, ownerTokens, label }
+export default { hashKey, generateKey, resolve, parseId, isAdmin, findOwned, owns, ownedIds, ownerId, ownerTokens, purge, label }
