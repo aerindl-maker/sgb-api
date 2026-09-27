@@ -4,25 +4,23 @@ import type {
     InferAttributes,
     CreationOptional,
     InferCreationAttributes,
-    ForeignKey,
 } from "sequelize"
 
 //
 
-class Reading extends Model<InferAttributes<Reading>, InferCreationAttributes<Reading>> {
+class Esp extends Model<InferAttributes<Esp>, InferCreationAttributes<Esp>> {
     declare id: CreationOptional<number>
     declare name: string
-    declare unit: string
-    declare icon: string
-    declare value: number
-    declare espId: ForeignKey<number | null>
+    declare keyHash: CreationOptional<string | null>
+    declare enabled: CreationOptional<boolean>
+    declare lastSeenAt: CreationOptional<Date | null>
     declare createdAt: CreationOptional<Date>
     declare updatedAt: CreationOptional<Date>
 }
 
 //
 
-const readingAttr: ModelAttributes<Reading, InferAttributes<Reading>> = {
+const espAttr: ModelAttributes<Esp, InferAttributes<Esp>> = {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -32,22 +30,19 @@ const readingAttr: ModelAttributes<Reading, InferAttributes<Reading>> = {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    unit: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    icon: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    value: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-    },
-    espId: {
-        type: DataTypes.INTEGER,
+    keyHash: {
+        type: DataTypes.STRING(64),
         allowNull: true,
-        references: { key: "id", model: "esps" },
+        unique: "esps_key_hash",
+    },
+    enabled: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+    },
+    lastSeenAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
     },
     createdAt: {
         type: DataTypes.DATE,
@@ -63,12 +58,12 @@ const readingAttr: ModelAttributes<Reading, InferAttributes<Reading>> = {
 
 //
 
-const readingOpts = (sequelize: Sequelize): InitOptions<Reading> => ({
+const espOpts = (sequelize: Sequelize): InitOptions<Esp> => ({
     sequelize,
-    tableName: "readings",
+    tableName: "esps",
     timestamps: true,
 })
 
 //
 
-export { Reading, readingAttr, readingOpts }
+export { Esp, espAttr, espOpts }

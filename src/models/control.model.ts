@@ -4,6 +4,7 @@ import type {
 	InferAttributes,
 	CreationOptional,
 	InferCreationAttributes,
+	ForeignKey,
 } from "sequelize"
 
 //
@@ -15,6 +16,7 @@ class Control extends Model<InferAttributes<Control>, InferCreationAttributes<Co
 	declare intake: CreationOptional<boolean>
 	declare exhaust: CreationOptional<boolean>
 	declare light: CreationOptional<boolean>
+	declare espId: ForeignKey<number | null>
 	declare createdAt: CreationOptional<Date>
 	declare updatedAt: CreationOptional<Date>
 }
@@ -52,6 +54,11 @@ const controlAttr: ModelAttributes<Control, InferAttributes<Control>> = {
 		allowNull: false,
 		defaultValue: false,
 	},
+	espId: {
+		type: DataTypes.INTEGER,
+		allowNull: true,
+		references: { key: "id", model: "esps" },
+	},
 	createdAt: {
 		type: DataTypes.DATE,
 		allowNull: false,
@@ -70,6 +77,8 @@ const controlOpts = (sequelize: Sequelize): InitOptions<Control> => ({
 	sequelize,
 	tableName: "controls",
 	timestamps: true,
+	// --- One control row per esp, declared here so alter adds it to existing tables
+	indexes: [{ name: "controls_esp_id", unique: true, fields: ["espId"] }],
 })
 
 //

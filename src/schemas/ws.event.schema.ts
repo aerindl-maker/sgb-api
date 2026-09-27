@@ -7,12 +7,12 @@ type WsEventQuery = (typeof WsEventQuery)[number]
 
 //
 
-type WsEventHandler<T extends object = object> = (data: T[]) => Promise<void> | void
+type WsEventHandler<T extends object = object, C = undefined> = (data: T[], context: C) => Promise<void> | void
 
-type WsEventOptions<T extends object = object> = {
+type WsEventOptions<T extends object = object, C = undefined> = {
 	name: string
 	query: WsEventQuery
-	handler: WsEventHandler<T>
+	handler: WsEventHandler<T, C>
 }
 
 type WsEvent<T extends object = object> = {
@@ -20,6 +20,9 @@ type WsEvent<T extends object = object> = {
 	data: T[]
 	query: WsEventQuery
 }
+
+// --- Identifies which esp sent the event
+type EspContext = { espId: number }
 
 //
 
@@ -34,4 +37,4 @@ type WsEventSchema = z.infer<typeof WsEventSchema>
 //
 
 export { WsEventQuery, WsEventSchema }
-export type { WsEvent, WsEventOptions, WsEventHandler }
+export type { WsEvent, WsEventOptions, WsEventHandler, EspContext }

@@ -4,6 +4,8 @@ import { PaginationSchema } from "@/schemas/pagination.schema.js"
 import { ReadingCreateSchema, ReadingQuerySchema, ReadingUpdateSchema } from "@/schemas/reading.schema.js"
 import { type RequestHandler } from "express"
 import { Op } from "sequelize"
+import { DEFAULT_ESP_ID } from "@/schemas/esp.schema.js"
+import espService from "@/services/esp.service.js"
 
 //
 
@@ -16,6 +18,7 @@ const parseQuery = (query: unknown) => {
 
     const { alpha, omega, limit, offset, order = "asc" } = data
     const where: any = Object.fromEntries(entries)
+    where.espId = data.espId ?? DEFAULT_ESP_ID
     const createdAt = { ...(alpha && { [Op.gte]: alpha }), ...(omega && { [Op.lte]: omega }) }
     if (Object.keys(createdAt).length) where.createdAt = createdAt
 
@@ -51,7 +54,10 @@ const post: RequestHandler = async (req, res) => {
     const { data, error, success } = ReadingCreateSchema.safeParse(req.body)
     if (!success) return res.status(400).send(error.issues.at(0)?.message)
 
-    const reading = await Reading.create(data)
+    const esp = await espService.find(req.body)
+    if (!esp) return res.status(404).send("Esp not found.")
+
+    const reading = await Reading.create({ ...data, espId: esp.id })
     res.send(reading.dataValues)
     await thresholdOrchestrator.evaluate(reading.dataValues)
 }

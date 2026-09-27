@@ -28,6 +28,10 @@ const env = {
 		client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL || "",
 		universe_domain: process.env.FIREBASE_UNIVERSE_DOMAIN || "",
 	},
+	esp: {
+		strict: process.env.ESP_STRICT === "true",
+		defaultKey: process.env.ESP_DEFAULT_KEY || "",
+	},
 	supabase: {
 		url: process.env.SUPABASE_URL || "",
 		key: process.env.SUPABASE_KEY || "",

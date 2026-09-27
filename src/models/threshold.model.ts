@@ -16,6 +16,7 @@ class Threshold extends Model<InferAttributes<Threshold>, InferCreationAttribute
     declare reading: string
     declare message: string
     declare operator: string
+    declare espId: ForeignKey<number | null>
     declare createdAt: CreationOptional<Date>
     declare updatedAt: CreationOptional<Date>
 }
@@ -47,6 +48,11 @@ const thresholdAttr: ModelAttributes<Threshold, InferAttributes<Threshold>> = {
     operator: {
         type: DataTypes.STRING,
         allowNull: false,
+    },
+    espId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: { key: "id", model: "esps" },
     },
     createdAt: {
         type: DataTypes.DATE,

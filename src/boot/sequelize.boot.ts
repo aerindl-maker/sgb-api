@@ -9,6 +9,7 @@ import { User, userAttr, userOpts } from "@/models/user.model.js"
 import { Device, deviceAttr, deviceOpts } from "@/models/device.model.js"
 import { Control, controlAttr, controlOpts } from "@/models/control.model.js"
 import { Fault, faultAttr, faultOpts } from "@/models/fault.model.js"
+import { Esp, espAttr, espOpts } from "@/models/esp.model.js"
 import {
 	PixelToCmRatio,
 	PlantHeight,
@@ -35,6 +36,7 @@ const boot = async () => {
 	Control.init(controlAttr, controlOpts(sequelize))
 	Detection.init(detectionAttr, detectionOpts(sequelize))
 	Device.init(deviceAttr, deviceOpts(sequelize))
+	Esp.init(espAttr, espOpts(sequelize))
 	Fault.init(faultAttr, faultOpts(sequelize))
 	PixelToCmRatio.init(pixelToCmRatioAttr, pixelToCmRatioOpts(sequelize))
 	PlantHeight.init(plantHeightAttr, plantHeightOpts(sequelize))
@@ -51,7 +53,6 @@ const boot = async () => {
 	PlantHeight.belongsTo(Capture, { as: "capture", foreignKey: "captureId" })
 	PlantHeight.belongsTo(Detection, { as: "detection", foreignKey: "detectionId" })
 	Device.belongsTo(User, { as: "user", foreignKey: "userId" })
-
 	await sequelize.authenticate()
 	const { sync, alter, force } = env.database
 	if (sync) await sequelize.sync({ alter, force })

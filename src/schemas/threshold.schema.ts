@@ -14,6 +14,7 @@ const ThresholdSchema = z.object({
     reading: z.string(),
     message: z.string(),
     operator: z.enum(ThresholdOp),
+    espId: z.coerce.number().int().nullable(),
     createdAt: z.coerce.date(),
     updatedAt: z.coerce.date(),
 })
@@ -23,8 +24,8 @@ const ThresholdQuerySchema = ThresholdSchema
     .extend({ icon: z.string() })
     .partial()
 
-const ThresholdCreateSchema = ThresholdSchema.omit({ id: true, createdAt: true, updatedAt: true })
-const ThresholdUpdateSchema = ThresholdSchema.omit({ id: true, createdAt: true, updatedAt: true }).partial()
+const ThresholdCreateSchema = ThresholdSchema.omit({ id: true, espId: true, createdAt: true, updatedAt: true })
+const ThresholdUpdateSchema = ThresholdSchema.omit({ id: true, espId: true, createdAt: true, updatedAt: true }).partial()
 
 //
 

@@ -3,12 +3,14 @@ import { Fault } from "@/models/fault.model.js"
 import { type FaultCreateSchema } from "@/schemas/fault.schema.js"
 import firebaseService from "@/services/firebase.service.js"
 import { Notification } from "firebase-admin/messaging"
+import espService from "@/services/esp.service.js"
 
 //
 
 const create = async (data: FaultCreateSchema) => {
 	const fault = await Fault.create(data)
-	await notifyUsers(fault.title, fault.message)
+	const prefix = await espService.label(fault.espId)
+	await notifyUsers(`${prefix}${fault.title}`, fault.message)
 	return fault
 }
 

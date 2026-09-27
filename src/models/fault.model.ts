@@ -1,5 +1,5 @@
 import { Model, DataTypes, Sequelize, ModelAttributes } from "sequelize"
-import type { InitOptions, InferAttributes, CreationOptional, InferCreationAttributes } from "sequelize"
+import type { InitOptions, InferAttributes, CreationOptional, InferCreationAttributes, ForeignKey } from "sequelize"
 
 //
 
@@ -7,6 +7,7 @@ class Fault extends Model<InferAttributes<Fault>, InferCreationAttributes<Fault>
 	declare id: CreationOptional<number>
 	declare title: string
 	declare message: string
+	declare espId: ForeignKey<number | null>
 	declare createdAt: CreationOptional<Date>
 	declare updatedAt: CreationOptional<Date>
 }
@@ -26,6 +27,11 @@ const faultAttr: ModelAttributes<Fault, InferAttributes<Fault>> = {
 	message: {
 		type: DataTypes.STRING,
 		allowNull: false,
+	},
+	espId: {
+		type: DataTypes.INTEGER,
+		allowNull: true,
+		references: { key: "id", model: "esps" },
 	},
 	createdAt: {
 		type: DataTypes.DATE,

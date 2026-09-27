@@ -8,6 +8,7 @@ const ReadingSchema = z.object({
     unit: z.string().default(""),
     icon: z.string().default("mdi-thermometer"),
     value: z.coerce.number(),
+    espId: z.coerce.number().int().nullable(),
     createdAt: z.coerce.date(),
     updatedAt: z.coerce.date(),
 })

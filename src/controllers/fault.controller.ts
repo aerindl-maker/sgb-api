@@ -3,6 +3,7 @@ import { PaginationSchema } from "@/schemas/pagination.schema.js"
 import { FaultQuerySchema } from "@/schemas/fault.schema.js"
 import { type RequestHandler } from "express"
 import { Op } from "sequelize"
+import { DEFAULT_ESP_ID } from "@/schemas/esp.schema.js"
 
 //
 
@@ -15,6 +16,7 @@ const get: RequestHandler = async (req, res) => {
 
 	const { alpha, omega, limit, offset } = data
 	const where: any = Object.fromEntries(entries)
+	where.espId = data.espId ?? DEFAULT_ESP_ID
 	const createdAt = { ...(alpha && { [Op.gte]: alpha }), ...(omega && { [Op.lte]: omega }) }
 	if (Object.keys(createdAt).length) where.createdAt = createdAt
 
