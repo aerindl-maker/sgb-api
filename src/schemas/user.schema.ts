@@ -23,6 +23,10 @@ const UserQuerySchema = UserSchema.partial()
 const UserSignInSchema = UserSchema.pick({ email: true, password: true })
 const UserCreateSchema = UserSchema.omit({ id: true, createdAt: true, updatedAt: true })
 const UserUpdateSchema = UserSchema.omit({ id: true, createdAt: true, updatedAt: true }).partial()
+const UserForgotPasswordSchema = UserSchema.pick({ email: true })
+const UserResetPasswordSchema = UserSchema.pick({ email: true, password: true }).extend({
+    code: z.string().regex(/^\d{6}$/, "Code must be 6 digits."),
+})
 
 //
 
@@ -32,6 +36,8 @@ type UserQuerySchema = z.infer<typeof UserQuerySchema>
 type UserSignInSchema = z.infer<typeof UserSignInSchema>
 type UserCreateSchema = z.infer<typeof UserCreateSchema>
 type UserUpdateSchema = z.infer<typeof UserUpdateSchema>
+type UserForgotPasswordSchema = z.infer<typeof UserForgotPasswordSchema>
+type UserResetPasswordSchema = z.infer<typeof UserResetPasswordSchema>
 
 //
 
@@ -43,4 +49,6 @@ export {
     UserSignInSchema,
     UserCreateSchema,
     UserUpdateSchema,
+    UserForgotPasswordSchema,
+    UserResetPasswordSchema,
 }

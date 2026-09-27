@@ -28,6 +28,18 @@ const env = {
 		client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL || "",
 		universe_domain: process.env.FIREBASE_UNIVERSE_DOMAIN || "",
 	},
+	archmail: {
+		url: process.env.ARCHMAIL_URL || "",
+		apikey: process.env.ARCHMAIL_APIKEY || "",
+		address: process.env.ARCHMAIL_GMAIL_ADDRESS || "",
+		password: process.env.ARCHMAIL_GMAIL_PASSWORD || "",
+		fromName: process.env.ARCHMAIL_FROM_NAME || "",
+	},
+	otp: {
+		expiry: Number(process.env.OTP_EXPIRY_MINUTES) || 10,
+		cooldown: Number(process.env.OTP_COOLDOWN_SECONDS) || 60,
+		attempts: Number(process.env.OTP_MAX_ATTEMPTS) || 5,
+	},
 	esp: {
 		strict: process.env.ESP_STRICT === "true",
 		defaultKey: process.env.ESP_DEFAULT_KEY || "",

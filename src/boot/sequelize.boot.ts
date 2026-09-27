@@ -10,6 +10,7 @@ import { Device, deviceAttr, deviceOpts } from "@/models/device.model.js"
 import { Control, controlAttr, controlOpts } from "@/models/control.model.js"
 import { Fault, faultAttr, faultOpts } from "@/models/fault.model.js"
 import { Esp, espAttr, espOpts } from "@/models/esp.model.js"
+import { PasswordReset, passwordResetAttr, passwordResetOpts } from "@/models/password-reset.model.js"
 import {
 	PixelToCmRatio,
 	PlantHeight,
@@ -38,6 +39,7 @@ const boot = async () => {
 	Device.init(deviceAttr, deviceOpts(sequelize))
 	Esp.init(espAttr, espOpts(sequelize))
 	Fault.init(faultAttr, faultOpts(sequelize))
+	PasswordReset.init(passwordResetAttr, passwordResetOpts(sequelize))
 	PixelToCmRatio.init(pixelToCmRatioAttr, pixelToCmRatioOpts(sequelize))
 	PlantHeight.init(plantHeightAttr, plantHeightOpts(sequelize))
 	Reading.init(readingAttr, readingOpts(sequelize))
@@ -52,10 +54,13 @@ const boot = async () => {
 	Detection.hasOne(PlantHeight, { as: "plantHeight", foreignKey: "detectionId", onDelete: "CASCADE" })
 	PlantHeight.belongsTo(Capture, { as: "capture", foreignKey: "captureId" })
 	PlantHeight.belongsTo(Detection, { as: "detection", foreignKey: "detectionId" })
+	User.hasOne(PasswordReset, { foreignKey: "userId", onDelete: "CASCADE" })
 	Device.belongsTo(User, { as: "user", foreignKey: "userId" })
 	await sequelize.authenticate()
 	const { sync, alter, force } = env.database
 	if (sync) await sequelize.sync({ alter, force })
+	// --- Newer table, created even when sync is off so the reset flow works on existing databases
+	else await PasswordReset.sync()
 	console.info(`[Boot.Sequelize]: ${sync ? `Synced` : `Connected`} successfully.`)
 }
 
