@@ -1,7 +1,9 @@
 import crypto from "crypto"
 import env from "@/config/env.config.js"
 import { Esp } from "@/models/esp.model.js"
+import { Device } from "@/models/device.model.js"
 import { DEFAULT_ESP_ID, EspIdSchema } from "@/schemas/esp.schema.js"
+import { type UserSafeSchema } from "@/schemas/user.schema.js"
 
 //
 
@@ -25,16 +27,56 @@ const parseId = (source: unknown) => {
     return success ? data.espId : DEFAULT_ESP_ID
 }
 
-const find = async (source: unknown) => await Esp.findByPk(parseId(source))
+//
 
-// --- Prefixes notifications with the esp name once there is more than one
+const isAdmin = (user?: UserSafeSchema) => user?.role == "Admin"
+
+// --- Admins may reach any esp, everyone else only their own
+const findOwned = async (user: UserSafeSchema | undefined, source: unknown) => {
+    if (!user) return null
+    const id = parseId(source)
+    const where = isAdmin(user) ? { id } : { id, userId: user.id }
+    return await Esp.findOne({ where })
+}
+
+const owns = async (user: UserSafeSchema | undefined, espId?: number | null) => {
+    if (!user) return false
+    if (isAdmin(user)) return true
+    if (espId == null) return false
+    return (await Esp.count({ where: { id: espId, userId: user.id } })) > 0
+}
+
+// --- Every esp id the user may reach, undefined meaning all of them for admins
+const ownedIds = async (user?: UserSafeSchema) => {
+    if (isAdmin(user)) return undefined
+    if (!user) return []
+    const esps = await Esp.findAll({ where: { userId: user.id }, attributes: ["id"] })
+    return esps.map((e) => e.id)
+}
+
+const ownerId = async (espId?: number | null) => {
+    if (espId == null) return null
+    const esp = await Esp.findByPk(espId, { attributes: ["userId"] })
+    return esp?.userId ?? null
+}
+
+// --- Push tokens of the phones signed in as the esp's owner
+const ownerTokens = async (espId?: number | null) => {
+    const userId = await ownerId(espId)
+    if (userId == null) return []
+    const devices = await Device.findAll({ where: { userId }, attributes: ["token"] })
+    return [...new Set(devices.map((d) => d.token).filter(Boolean))]
+}
+
+// --- Prefixes notifications with the esp name once its owner has more than one
 const label = async (espId?: number | null) => {
-    const count = await Esp.count()
-    if (count <= 1 || espId == null) return ""
-    const esp = await Esp.findByPk(espId, { attributes: ["name"] })
-    return esp ? `${esp.name} · ` : ""
+    if (espId == null) return ""
+    const esp = await Esp.findByPk(espId, { attributes: ["name", "userId"] })
+    if (!esp) return ""
+    const count = await Esp.count({ where: { userId: esp.userId } })
+    return count > 1 ? `${esp.name} · ` : ""
 }
 
 //
 
-export default { hashKey, generateKey, resolve, parseId, find, label }
+export default { hashKey, generateKey, resolve, parseId, isAdmin, findOwned, owns, ownedIds, ownerId, ownerTokens, label }

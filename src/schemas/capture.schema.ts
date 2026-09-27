@@ -6,6 +6,7 @@ const CaptureSchema = z.object({
     id: z.coerce.number().int(),
     image: z.string().min(1),
     object: z.string().min(1),
+    espId: z.coerce.number().int().nullable(),
     createdAt: z.coerce.date(),
     updatedAt: z.coerce.date(),
 })

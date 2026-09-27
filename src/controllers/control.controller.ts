@@ -8,7 +8,7 @@ import { type RequestHandler } from "express"
 //
 
 const get: RequestHandler = async (req, res) => {
-	const esp = await espService.find(req.query)
+	const esp = await espService.findOwned(req.user, req.query)
 	if (!esp) return res.status(404).send("Esp not found.")
 
 	const [control] = await Control.findOrCreate({ where: { espId: esp.id } })
@@ -16,7 +16,7 @@ const get: RequestHandler = async (req, res) => {
 }
 
 const patch: RequestHandler = async (req, res) => {
-	const esp = await espService.find(req.query)
+	const esp = await espService.findOwned(req.user, req.query)
 	if (!esp) return res.status(404).send("Esp not found.")
 
 	const { data, error, success } = ControlUpdateSchema.safeParse(req.body)

@@ -6,6 +6,8 @@ import { type RequestHandler } from "express"
 import { Op } from "sequelize"
 import env from "@/config/env.config.js"
 import supabaseService from "@/services/supabase.service.js"
+import espService from "@/services/esp.service.js"
+import { DEFAULT_ESP_ID } from "@/schemas/esp.schema.js"
 
 //
 
@@ -20,6 +22,8 @@ const get: RequestHandler = async (req, res, next) => {
     const where: any = Object.fromEntries(entries)
     const createdAt = { ...(alpha && { [Op.gte]: alpha }), ...(omega && { [Op.lte]: omega }) }
     if (Object.keys(createdAt).length) where.createdAt = createdAt
+    where.espId = data.espId ?? DEFAULT_ESP_ID
+    if (!(await espService.owns(req.user, where.espId))) return res.status(404).send("Esp not found.")
 
     const captures = await Capture.findAll({ where, raw: true, limit, offset })
     res.send(captures)
@@ -30,12 +34,15 @@ const post: RequestHandler = async (req, res, next) => {
     
     const { data, error, success } = CaptureCreateSchema.safeParse(req.body)
     if (!success) return res.status(400).send(error.issues.at(0)?.message)
+
+    const esp = await espService.findOwned(req.user, req.body)
+    if (!esp) return res.status(404).send("Esp not found.")
     
     await supabaseService.supabase.storage
         .from("images")
         .upload(req.file.filename, req.file.buffer, { contentType: req.file.mimetype })
     
-    const capture = await Capture.create({ ...data, image: req.file.filename })
+    const capture = await Capture.create({ ...data, image: req.file.filename, espId: esp.id })
     res.send(capture.dataValues)
 }
 
@@ -47,7 +54,7 @@ const patch: RequestHandler = async (req, res, next) => {
     if (!success) return res.status(400).send(error.issues.at(0)?.message)
 
     const capture = await Capture.findByPk(cid)
-    if (!capture) return res.status(404).send("Capture not found.")
+    if (!capture || !(await espService.owns(req.user, capture.espId))) return res.status(404).send("Capture not found.")
 
     await capture.update(data)
     res.send(capture.dataValues)
@@ -58,7 +65,7 @@ const destroy: RequestHandler = async (req, res, next) => {
     if (!cid) return res.status(400).send("Capture id required.")
 
     const capture = await Capture.findByPk(cid)
-    if (!capture) return res.status(404).send("Capture not found.")
+    if (!capture || !(await espService.owns(req.user, capture.espId))) return res.status(404).send("Capture not found.")
 
     await fs
         .unlink(`${process.cwd()}/${env.multer.path}/${capture.image}`)

@@ -4,6 +4,7 @@ import { FaultQuerySchema } from "@/schemas/fault.schema.js"
 import { type RequestHandler } from "express"
 import { Op } from "sequelize"
 import { DEFAULT_ESP_ID } from "@/schemas/esp.schema.js"
+import espService from "@/services/esp.service.js"
 
 //
 
@@ -19,6 +20,7 @@ const get: RequestHandler = async (req, res) => {
 	where.espId = data.espId ?? DEFAULT_ESP_ID
 	const createdAt = { ...(alpha && { [Op.gte]: alpha }), ...(omega && { [Op.lte]: omega }) }
 	if (Object.keys(createdAt).length) where.createdAt = createdAt
+	if (!(await espService.owns(req.user, where.espId))) return res.status(404).send("Esp not found.")
 
 	const faults = await Fault.findAll({ where, raw: true, limit, offset, order: [["createdAt", "DESC"]] })
 	res.send(faults)

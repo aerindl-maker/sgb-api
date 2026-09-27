@@ -1,4 +1,5 @@
-import { Device } from "@/models/device.model.js";
+import { Capture } from "@/models/capture.model.js";
+import espService from "@/services/esp.service.js";
 import { DetectionSchema } from "@/schemas/detection.schema.js";
 import firebaseService from "@/services/firebase.service.js";
 import { Notification } from "firebase-admin/messaging";
@@ -7,9 +8,13 @@ import { Notification } from "firebase-admin/messaging";
 
 const evaluate = async (detections: DetectionSchema[]) => {
     const diseases = detections.filter((d) => isDisease(d))
-    const devices = await Device.findAll({ attributes: ["token"] })
-    
-    const tokens = devices.map((d) => d.token)
+    if (!diseases.length) return
+
+    // --- Only the owner of the capture's esp is notified
+    const capture = await Capture.findByPk(diseases[0]!.captureId, { attributes: ["espId"] })
+    const tokens = await espService.ownerTokens(capture?.espId)
+    if (!tokens.length) return
+
     const notification = createNotification(diseases)
     await firebaseService.fcm.sendEachForMulticast({ tokens, notification })
 }

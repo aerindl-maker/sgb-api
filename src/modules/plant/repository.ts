@@ -16,6 +16,7 @@ type CreatePlantCaptureInput = {
 	detections: PlantDetection[]
 	frameWidth: number
 	frameHeight: number
+	espId: number
 }
 
 //
@@ -25,7 +26,7 @@ const createPlantCapture = async (input: CreatePlantCaptureInput) => {
 	if (!sequelize) throw new Error("Database is not initialized.")
 
 	return await sequelize.transaction(async transaction => {
-		const capture = await Capture.create({ image: input.image, object: "plant" }, { transaction })
+		const capture = await Capture.create({ image: input.image, object: "plant", espId: input.espId }, { transaction })
 		const detections: Detection[] = []
 		const heights: PlantHeight[] = []
 
@@ -65,12 +66,16 @@ const buildCreatedAtWhere = (query: CountPlantHeightsQuery) => {
 	return Object.keys(createdAt).length ? { createdAt } : undefined
 }
 
+// --- Heights belong to an esp through their capture
+const byEsp = (espId: number) => [{ model: Capture, as: "capture", attributes: [], where: { espId } }]
+
 const listPlantHeights = async (query: ListPlantHeightsQuery) => {
 	const where = buildCreatedAtWhere(query)
 	const direction = query.order === "asc" ? "ASC" : "DESC"
 
 	const heights = await PlantHeight.findAll({
 		...(where && { where }),
+		include: byEsp(query.espId),
 		limit: query.limit,
 		offset: query.offset,
 		order: [
@@ -86,7 +91,7 @@ const listPlantHeights = async (query: ListPlantHeightsQuery) => {
 
 const countPlantHeights = async (query: CountPlantHeightsQuery) => {
 	const where = buildCreatedAtWhere(query)
-	return await PlantHeight.count({ ...(where && { where }) })
+	return await PlantHeight.count({ ...(where && { where }), include: byEsp(query.espId) })
 }
 
 const listPixelToCmRatios = async () => {

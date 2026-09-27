@@ -1,4 +1,3 @@
-import { Device } from "@/models/device.model.js";
 import { Threshold } from "@/models/threshold.model.js";
 import { ReadingSchema } from "@/schemas/reading.schema.js";
 import { ThresholdSchema } from "@/schemas/threshold.schema.js";
@@ -11,13 +10,13 @@ import { DEFAULT_ESP_ID } from "@/schemas/esp.schema.js";
 
 const evaluate = async (reading: ReadingSchema) => {
     const espId = reading.espId ?? DEFAULT_ESP_ID
-    const tprms = Threshold.findAll({ where: { reading: reading.name, espId } })
-    const dprms = Device.findAll({ attributes: ["token"] })
-    const [thresholds, devices] = await Promise.all([tprms, dprms])
-    
+    const thresholds = await Threshold.findAll({ where: { reading: reading.name, espId } })
+
     const triggereds = thresholds.filter((t) => isTriggered(reading, ThresholdSchema.parse(t.dataValues)))
-    const tokens = devices.map((d) => d.token)
     if (!triggereds.length) return
+
+    const tokens = await espService.ownerTokens(espId)
+    if (!tokens.length) return
     
     const prefix = await espService.label(espId)
     const notifications = triggereds.map((t) => createNotification(ThresholdSchema.parse(t.dataValues), prefix))

@@ -8,6 +8,8 @@ import { Reading } from "@/models/reading.model.js"
 import { Threshold } from "@/models/threshold.model.js"
 import { Control } from "@/models/control.model.js"
 import { Fault } from "@/models/fault.model.js"
+import { Capture } from "@/models/capture.model.js"
+import { User } from "@/models/user.model.js"
 import { DEFAULT_ESP_ID } from "@/schemas/esp.schema.js"
 
 //
@@ -20,13 +22,14 @@ const backfill = async () => {
     const [readings] = await Reading.update(values, { where })
     const [thresholds] = await Threshold.update(values, { where })
     const [faults] = await Fault.update(values, { where })
+    const [captures] = await Capture.update(values, { where })
 
     // --- Only one control per esp, adopt the oldest orphan
     const owned = await Control.count({ where: { espId: DEFAULT_ESP_ID } })
     const orphan = owned ? null : await Control.findOne({ where, order: [["id", "ASC"]] })
     if (orphan) await orphan.update(values)
 
-    const total = readings + thresholds + faults + (orphan ? 1 : 0)
+    const total = readings + thresholds + faults + captures + (orphan ? 1 : 0)
     if (total) console.info(`[Boot.Esp]: Adopted ${total} rows into the default esp.`)
 }
 
@@ -38,9 +41,21 @@ const seed = async () => {
     if (keyHash && esp.keyHash != keyHash) await esp.update({ keyHash })
 }
 
+// --- Esps made before ownership go to the oldest farmer, or the admin when there's none
+const adopt = async () => {
+    const order: [string, string][] = [["id", "ASC"]]
+    const owner = await User.findOne({ where: { role: { [Op.ne]: "Admin" } }, order })
+        ?? await User.findOne({ order })
+    if (!owner) return
+
+    const [count] = await Esp.update({ userId: owner.id }, { where: { userId: { [Op.is]: null } } as any })
+    if (count) console.info(`[Boot.Esp]: Assigned ${count} esps to user ${owner.id}.`)
+}
+
 const boot = async () => {
     await seed()
     await backfill()
+    await adopt()
 
     await espWebsocket.subscribe("Reading", "Create", espHandler.onCreateReading)
     await espWebsocket.subscribe("Threshold", "Retrieve", espHandler.onRetrieveThreshold)

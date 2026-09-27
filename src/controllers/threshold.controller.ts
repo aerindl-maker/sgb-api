@@ -22,6 +22,7 @@ const get: RequestHandler = async (req, res) => {
     where.espId = data.espId ?? DEFAULT_ESP_ID
     const createdAt = { ...(alpha && { [Op.gte]: alpha }), ...(omega && { [Op.lte]: omega }) }
     if (Object.keys(createdAt).length) where.createdAt = createdAt
+    if (!(await espService.owns(req.user, where.espId))) return res.status(404).send("Esp not found.")
 
     const thresholds = await Threshold.findAll({ where, raw: true, limit, offset })
     res.send(thresholds)
@@ -31,7 +32,7 @@ const post: RequestHandler = async (req, res) => {
     const { data, error, success } = ThresholdCreateSchema.safeParse(req.body)
     if (!success) return res.status(400).send(error.issues.at(0)?.message)
 
-    const esp = await espService.find(req.body)
+    const esp = await espService.findOwned(req.user, req.body)
     if (!esp) return res.status(404).send("Esp not found.")
 
     const threshold = await Threshold.create({ ...data, espId: esp.id })
@@ -49,7 +50,7 @@ const patch: RequestHandler = async (req, res) => {
     if (!success) return res.status(400).send(error.issues.at(0)?.message)
 
     const threshold = await Threshold.findByPk(tid)
-    if (!threshold) return res.status(404).send("Threshold not found.")
+    if (!threshold || !(await espService.owns(req.user, threshold.espId))) return res.status(404).send("Threshold not found.")
 
     await threshold.update(data)
     res.send(threshold.dataValues)
@@ -62,8 +63,10 @@ const destroy: RequestHandler = async (req, res) => {
     const tid = req.params.tid as string
     if (!tid) return res.status(400).send("Threshold id required.")
 
-    const count = await Threshold.destroy({ where: { id: tid } })
-    if (count <= 0) return res.status(404).send("Threshold not found.")
+    const threshold = await Threshold.findByPk(tid)
+    if (!threshold || !(await espService.owns(req.user, threshold.espId))) return res.status(404).send("Threshold not found.")
+
+    await threshold.destroy()
 
     return res.status(204).send("Threshold deleted successfully.")
 }

@@ -14,17 +14,20 @@ import type {
 } from "@/modules/plant/schema.js"
 import supabaseService from "@/services/supabase.service.js"
 import type { RequestHandler } from "express"
+import espService from "@/services/esp.service.js"
 
 //
 
 const listHeightsController: RequestHandler = async (req, res) => {
 	const query = req.validated?.query as ListPlantHeightsQuery
+	if (!(await espService.owns(req.user, query.espId))) return void res.status(404).send("Esp not found.")
 	const heights = await listPlantHeights(query)
 	res.status(200).json(heights)
 }
 
 const countHeightsController: RequestHandler = async (req, res) => {
 	const query = req.validated?.query as CountPlantHeightsQuery
+	if (!(await espService.owns(req.user, query.espId))) return void res.status(404).send("Esp not found.")
 	const count = await countPlantHeights(query)
 	res.status(200).json({ count })
 }
@@ -47,6 +50,7 @@ const createPlantCaptureController: RequestHandler = async (req, res, next) => {
 	}
 
 	const body = req.validated?.body as CreatePlantCaptureBody
+	if (!(await espService.owns(req.user, body.espId))) return void res.status(404).send("Esp not found.")
 	const filename = multerMiddleware.buildImageFilename(req.file.originalname)
 	const bucket = supabaseService.supabase.storage.from("images")
 	const { error } = await bucket.upload(filename, req.file.buffer, { contentType: req.file.mimetype })

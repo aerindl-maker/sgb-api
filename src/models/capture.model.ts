@@ -13,6 +13,7 @@ class Capture extends Model<InferAttributes<Capture>, InferCreationAttributes<Ca
     declare id: CreationOptional<number>
     declare image: string
     declare object: string
+    declare espId: ForeignKey<number | null>
     declare createdAt: CreationOptional<Date>
     declare updatedAt: CreationOptional<Date>
 }
@@ -32,6 +33,11 @@ const captureAttr: ModelAttributes<Capture, InferAttributes<Capture>> = {
     object: {
         type: DataTypes.STRING,
         allowNull: false,
+    },
+    espId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: { key: "id", model: "esps" },
     },
     createdAt: {
         type: DataTypes.DATE,

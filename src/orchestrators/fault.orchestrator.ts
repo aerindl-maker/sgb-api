@@ -1,4 +1,3 @@
-import { Device } from "@/models/device.model.js"
 import { Fault } from "@/models/fault.model.js"
 import { type FaultCreateSchema } from "@/schemas/fault.schema.js"
 import firebaseService from "@/services/firebase.service.js"
@@ -10,13 +9,12 @@ import espService from "@/services/esp.service.js"
 const create = async (data: FaultCreateSchema) => {
 	const fault = await Fault.create(data)
 	const prefix = await espService.label(fault.espId)
-	await notifyUsers(`${prefix}${fault.title}`, fault.message)
+	await notifyOwner(fault.espId, `${prefix}${fault.title}`, fault.message)
 	return fault
 }
 
-const notifyUsers = async (title: string, message: string) => {
-	const devices = await Device.findAll({ attributes: ["token"] })
-	const tokens = [...new Set(devices.map(d => d.token).filter(Boolean))]
+const notifyOwner = async (espId: number | null | undefined, title: string, message: string) => {
+	const tokens = await espService.ownerTokens(espId)
 	if (!tokens.length) return
 
 	const chunks = chunk(tokens, 500)
@@ -39,4 +37,4 @@ const createNotification = (title: string, message: string) =>
 
 //
 
-export default { create, notifyUsers }
+export default { create, notifyOwner }

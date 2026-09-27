@@ -30,6 +30,7 @@ const get: RequestHandler = async (req, res) => {
     if ("error" in query) return res.status(400).send(query.error)
 
     const { where, limit, offset, order } = query
+    if (!(await espService.owns(req.user, where.espId))) return res.status(404).send("Esp not found.")
 
     // --- Stable ordering keeps offset pages from overlapping
     const readings = await Reading.findAll({
@@ -45,6 +46,7 @@ const get: RequestHandler = async (req, res) => {
 const count: RequestHandler = async (req, res) => {
     const query = parseQuery(req.query)
     if ("error" in query) return res.status(400).send(query.error)
+    if (!(await espService.owns(req.user, query.where.espId))) return res.status(404).send("Esp not found.")
 
     const total = await Reading.count({ where: query.where })
     res.send({ count: total })
@@ -54,7 +56,7 @@ const post: RequestHandler = async (req, res) => {
     const { data, error, success } = ReadingCreateSchema.safeParse(req.body)
     if (!success) return res.status(400).send(error.issues.at(0)?.message)
 
-    const esp = await espService.find(req.body)
+    const esp = await espService.findOwned(req.user, req.body)
     if (!esp) return res.status(404).send("Esp not found.")
 
     const reading = await Reading.create({ ...data, espId: esp.id })
@@ -70,7 +72,7 @@ const patch: RequestHandler = async (req, res) => {
     if (!success) return res.status(400).send(error.issues.at(0)?.message)
 
     const reading = await Reading.findByPk(rid)
-    if (!reading) return res.status(404).send("Reading not found.")
+    if (!reading || !(await espService.owns(req.user, reading.espId))) return res.status(404).send("Reading not found.")
 
     await reading.update(data)
     res.send(reading.dataValues)
@@ -80,9 +82,10 @@ const destroy: RequestHandler = async (req, res) => {
     const rid = req.params.rid as string
     if (!rid) return res.status(400).send("Reading id required.")
 
-    const count = await Reading.destroy({ where: { id: rid } })
-    if (count <= 0) return res.status(404).send("Reading not found.")
+    const reading = await Reading.findByPk(rid)
+    if (!reading || !(await espService.owns(req.user, reading.espId))) return res.status(404).send("Reading not found.")
 
+    await reading.destroy()
     return res.status(204).send("Reading deleted successfully.")
 }
 

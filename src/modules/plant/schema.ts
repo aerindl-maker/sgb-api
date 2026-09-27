@@ -1,4 +1,5 @@
 import z from "zod"
+import { DEFAULT_ESP_ID } from "@/schemas/esp.schema.js"
 
 //
 
@@ -11,6 +12,9 @@ const parseJson = (value: unknown) => {
 		return value
 	}
 }
+
+// --- Legacy clients omit the esp and mean the default one
+const espIdSchema = z.coerce.number().int().positive().default(DEFAULT_ESP_ID)
 
 //
 
@@ -39,6 +43,7 @@ const createPlantCaptureBodySchema = z
 		detections: z.preprocess(parseJson, z.array(plantDetectionSchema).min(1).max(100)),
 		frameWidth: z.coerce.number().int().positive().max(8192),
 		frameHeight: z.coerce.number().int().positive().max(8192),
+		espId: espIdSchema,
 	})
 	.strict()
 
@@ -49,6 +54,7 @@ const listPlantHeightsQuerySchema = z
 		limit: z.coerce.number().int().min(1).max(500).default(100),
 		offset: z.coerce.number().int().min(0).default(0),
 		order: z.enum(["asc", "desc"]).optional(),
+		espId: espIdSchema,
 	})
 	.strict()
 
@@ -56,6 +62,7 @@ const countPlantHeightsQuerySchema = z
 	.object({
 		alpha: z.coerce.date().optional(),
 		omega: z.coerce.date().optional(),
+		espId: espIdSchema,
 	})
 	.strict()
 
