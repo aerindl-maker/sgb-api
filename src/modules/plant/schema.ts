@@ -59,6 +59,12 @@ const listPlantHeightsQuerySchema = z
 		espId: espIdSchema,
 	})
 	.strict()
+	.refine(query => !query.graph || !!query.period || !!(query.alpha && query.omega), {
+		message: "From and To dates are required.",
+	})
+	.refine(query => !query.alpha || !query.omega || query.alpha <= query.omega, {
+		message: "From must be on or before To.",
+	})
 
 const countPlantHeightsQuerySchema = z
 	.object({

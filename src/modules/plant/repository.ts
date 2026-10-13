@@ -1,3 +1,4 @@
+import { sampleGraphRows } from "@/services/graph.service.js"
 import { buildGraphCreatedAt } from "@/schemas/graph.schema.js"
 import { Capture } from "@/models/capture.model.js"
 import { Detection } from "@/models/detection.model.js"
@@ -75,12 +76,12 @@ const byEsp = (espId: number) => [{ model: Capture, as: "capture", attributes: [
 
 const listPlantHeights = async (query: ListPlantHeightsQuery) => {
 	const where = buildCreatedAtWhere(query)
-	const direction = query.order === "asc" ? "ASC" : "DESC"
+	const direction = query.graph || query.order === "asc" ? "ASC" : "DESC"
 
 	const heights = await PlantHeight.findAll({
 		...(where && { where }),
 		include: byEsp(query.espId),
-		limit: query.period ? undefined : query.limit,
+		limit: query.graph || query.period ? undefined : query.limit,
 		offset: query.offset,
 		order: [
 			["createdAt", direction],
@@ -90,6 +91,7 @@ const listPlantHeights = async (query: ListPlantHeightsQuery) => {
 	})
 
 	// Without an explicit order the latest page is returned oldest first for charting.
+	if (query.graph) return sampleGraphRows(heights)
 	return query.order ? heights : heights.reverse()
 }
 

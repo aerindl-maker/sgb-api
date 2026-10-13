@@ -4,6 +4,12 @@ import { Op } from "sequelize"
 //
 
 const GraphQuerySchema = z.object({
+	alpha: z.coerce.date().optional(),
+	omega: z.coerce.date().optional(),
+	graph: z
+		.enum(["true", "false"])
+		.transform(value => value === "true")
+		.default(false),
 	period: z.enum(["today", "week", "month", "year"]).optional(),
 	timezoneOffset: z.coerce.number().int().min(-840).max(720).default(0),
 })

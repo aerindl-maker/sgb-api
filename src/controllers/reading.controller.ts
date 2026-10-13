@@ -1,3 +1,4 @@
+import { sampleGraphRows } from "@/services/graph.service.js"
 import { GraphQuerySchema, buildGraphCreatedAt } from "@/schemas/graph.schema.js"
 import { Reading } from "@/models/reading.model.js"
 import thresholdOrchestrator from "@/orchestrators/threshold.orchestrator.js"
@@ -13,6 +14,8 @@ import espService from "@/services/esp.service.js"
 const parseQuery = (query: unknown) => {
     const { data, error, success } = PaginationSchema.and(ReadingQuerySchema).and(GraphQuerySchema).safeParse(query)
     if (!success) return { error: error.issues.at(0)?.message }
+    if (data.graph && !data.period && (!data.alpha || !data.omega)) return { error: "From and To dates are required." }
+    if (data.alpha && data.omega && data.alpha > data.omega) return { error: "From must be on or before To." }
 
     const keys = [...Object.keys(PaginationSchema.shape), ...Object.keys(GraphQuerySchema.shape)]
     const entries = Object.entries(data).filter(([k, v]) => !keys.includes(k) && v != undefined)
@@ -23,7 +26,7 @@ const parseQuery = (query: unknown) => {
     const createdAt = buildGraphCreatedAt(data) ?? { ...(alpha && { [Op.gte]: alpha }), ...(omega && { [Op.lte]: omega }) }
     if (Reflect.ownKeys(createdAt).length) where.createdAt = createdAt
 
-    return { where, limit: data.period ? undefined : limit, offset, order }
+    return { where, limit: data.period ? undefined : limit, offset, order, graph: data.graph || !!data.period }
 }
 
 const get: RequestHandler = async (req, res) => {
@@ -32,6 +35,30 @@ const get: RequestHandler = async (req, res) => {
 
     const { where, limit, offset, order } = query
     if (!(await espService.owns(req.user, where.espId))) return res.status(404).send("Esp not found.")
+
+    if (query.graph) {
+        const rows = await Reading.findAll({
+            where,
+            attributes: ["id", "name"],
+            order: [["createdAt", "asc"], ["id", "asc"]],
+            raw: true,
+        })
+        const series = new Map<string, typeof rows>()
+        for (const row of rows) {
+            const name = row.name.toLowerCase()
+            const key = ["humidity", "temperature", "soil", "light"].find(prefix => name.startsWith(prefix)) ?? name
+            const group = series.get(key) ?? []
+            group.push(row)
+            series.set(key, group)
+        }
+        const ids = [...series.values()].flatMap(group => sampleGraphRows(group).map(row => row.id))
+        const readings = ids.length ? await Reading.findAll({
+            where: { ...where, id: { [Op.in]: ids } },
+            raw: true,
+            order: [["createdAt", "asc"], ["id", "asc"]],
+        }) : []
+        return res.send(readings)
+    }
 
     // --- Stable ordering keeps offset pages from overlapping
     const readings = await Reading.findAll({
