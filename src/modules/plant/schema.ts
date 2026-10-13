@@ -1,3 +1,4 @@
+import { GraphQuerySchema } from "@/schemas/graph.schema.js"
 import z from "zod"
 import { DEFAULT_ESP_ID } from "@/schemas/esp.schema.js"
 
@@ -49,6 +50,7 @@ const createPlantCaptureBodySchema = z
 
 const listPlantHeightsQuerySchema = z
 	.object({
+		...GraphQuerySchema.shape,
 		alpha: z.coerce.date().optional(),
 		omega: z.coerce.date().optional(),
 		limit: z.coerce.number().int().min(1).max(500).default(100),
@@ -60,6 +62,7 @@ const listPlantHeightsQuerySchema = z
 
 const countPlantHeightsQuerySchema = z
 	.object({
+		...GraphQuerySchema.shape,
 		alpha: z.coerce.date().optional(),
 		omega: z.coerce.date().optional(),
 		espId: espIdSchema,

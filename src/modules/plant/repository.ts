@@ -1,3 +1,4 @@
+import { buildGraphCreatedAt } from "@/schemas/graph.schema.js"
 import { Capture } from "@/models/capture.model.js"
 import { Detection } from "@/models/detection.model.js"
 import { PixelToCmRatio, PlantHeight } from "@/modules/plant/model.js"
@@ -26,7 +27,10 @@ const createPlantCapture = async (input: CreatePlantCaptureInput) => {
 	if (!sequelize) throw new Error("Database is not initialized.")
 
 	return await sequelize.transaction(async transaction => {
-		const capture = await Capture.create({ image: input.image, object: "plant", espId: input.espId }, { transaction })
+		const capture = await Capture.create(
+			{ image: input.image, object: "plant", espId: input.espId },
+			{ transaction }
+		)
 		const detections: Detection[] = []
 		const heights: PlantHeight[] = []
 
@@ -58,12 +62,12 @@ const createPlantCapture = async (input: CreatePlantCaptureInput) => {
 }
 
 const buildCreatedAtWhere = (query: CountPlantHeightsQuery) => {
-	const createdAt = {
+	const createdAt = buildGraphCreatedAt(query) ?? {
 		...(query.alpha && { [Op.gte]: query.alpha }),
 		...(query.omega && { [Op.lte]: query.omega }),
 	}
 
-	return Object.keys(createdAt).length ? { createdAt } : undefined
+	return Reflect.ownKeys(createdAt).length ? { createdAt } : undefined
 }
 
 // --- Heights belong to an esp through their capture
@@ -76,7 +80,7 @@ const listPlantHeights = async (query: ListPlantHeightsQuery) => {
 	const heights = await PlantHeight.findAll({
 		...(where && { where }),
 		include: byEsp(query.espId),
-		limit: query.limit,
+		limit: query.period ? undefined : query.limit,
 		offset: query.offset,
 		order: [
 			["createdAt", direction],

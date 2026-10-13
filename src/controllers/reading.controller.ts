@@ -1,3 +1,4 @@
+import { GraphQuerySchema, buildGraphCreatedAt } from "@/schemas/graph.schema.js"
 import { Reading } from "@/models/reading.model.js"
 import thresholdOrchestrator from "@/orchestrators/threshold.orchestrator.js"
 import { PaginationSchema } from "@/schemas/pagination.schema.js"
@@ -10,19 +11,19 @@ import espService from "@/services/esp.service.js"
 //
 
 const parseQuery = (query: unknown) => {
-    const { data, error, success } = PaginationSchema.and(ReadingQuerySchema).safeParse(query)
+    const { data, error, success } = PaginationSchema.and(ReadingQuerySchema).and(GraphQuerySchema).safeParse(query)
     if (!success) return { error: error.issues.at(0)?.message }
 
-    const keys = Object.keys(PaginationSchema.shape)
+    const keys = [...Object.keys(PaginationSchema.shape), ...Object.keys(GraphQuerySchema.shape)]
     const entries = Object.entries(data).filter(([k, v]) => !keys.includes(k) && v != undefined)
 
     const { alpha, omega, limit, offset, order = "asc" } = data
     const where: any = Object.fromEntries(entries)
     where.espId = data.espId ?? DEFAULT_ESP_ID
-    const createdAt = { ...(alpha && { [Op.gte]: alpha }), ...(omega && { [Op.lte]: omega }) }
-    if (Object.keys(createdAt).length) where.createdAt = createdAt
+    const createdAt = buildGraphCreatedAt(data) ?? { ...(alpha && { [Op.gte]: alpha }), ...(omega && { [Op.lte]: omega }) }
+    if (Reflect.ownKeys(createdAt).length) where.createdAt = createdAt
 
-    return { where, limit, offset, order }
+    return { where, limit: data.period ? undefined : limit, offset, order }
 }
 
 const get: RequestHandler = async (req, res) => {
